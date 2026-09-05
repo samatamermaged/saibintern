@@ -109,8 +109,8 @@ class _ApplyPageState extends State<ApplyPage> {
   // ==========================================
   Future<void> _fetchCountries() async {
     try {
-      // تم مسح الرابط الثابت والاكتفاء بباقي المسار
-      final response = await _dio.get('/Account/countries');
+      // 💡 التعديل هنا: إضافة /api/ للمسار
+      final response = await _dio.get('/api/account/countries');
       if (!mounted) return;
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
@@ -126,7 +126,6 @@ class _ApplyPageState extends State<ApplyPage> {
       setState(() => _isLoadingCountries = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not load country codes: $e'), backgroundColor: Colors.red),
-
       );
     }
   }
@@ -168,8 +167,8 @@ class _ApplyPageState extends State<ApplyPage> {
         'SignatureDoc': await MultipartFile.fromFile(_signatureFile!.path, filename: 'sig.jpg'),
       });
 
-      // تم مسح الرابط الثابت هنا أيضاً
-      final response = await _dio.post('/account/apply', data: formData);
+      // 💡 التعديل هنا: إضافة /api/ للمسار
+      final response = await _dio.post('/api/account/apply', data: formData);
       if (!mounted) return;
 
       if (response.statusCode == 200) {

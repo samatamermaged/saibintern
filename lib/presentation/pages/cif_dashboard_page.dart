@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/network/api_client.dart';
 
 class CifDashboardPage extends StatefulWidget {
   const CifDashboardPage({super.key});
@@ -23,14 +22,7 @@ class _CifDashboardPageState extends State<CifDashboardPage> {
   @override
   void initState() {
     super.initState();
-    _dio = Dio();
-    _dio.httpClientAdapter = IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient();
-        client.badCertificateCallback = (cert, host, port) => true;
-        return client;
-      },
-    );
+    _dio = ApiClient.createDio();
   }
 
   Future<void> _searchCif() async {
@@ -43,9 +35,10 @@ class _CifDashboardPageState extends State<CifDashboardPage> {
     });
 
     try {
-      final response = await _dio.get('http://127.0.0.1:5057/api/account/dashboard/$cif');
+      final response = await _dio.get('/api/account/dashboard/$cif');
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         setState(() {
           _profileData = response.data['profile'] ?? response.data['Profile'] ?? {};
           _requests = response.data['requests'] ?? response.data['Requests'] ?? [];
@@ -53,20 +46,21 @@ class _CifDashboardPageState extends State<CifDashboardPage> {
         });
       }
     } on DioException catch (e) {
+      if (!mounted) return;
       String errorMsg = 'Failed to load dashboard.';
       if (e.response?.statusCode == 404) {
         errorMsg = 'No records found for this CIF.';
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMsg), backgroundColor: Colors.red));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _applyFromCif(String accountType) async {
     try {
       final response = await _dio.post(
-          'http://127.0.0.1:5057/api/account/apply-from-cif',
+          '/api/account/apply-from-cif',
           data: {
             'cif': _cifController.text.trim(),
             'accountType': accountType
@@ -207,7 +201,7 @@ class _CifDashboardPageState extends State<CifDashboardPage> {
           color: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(18.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -215,11 +209,13 @@ class _CifDashboardPageState extends State<CifDashboardPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Customer Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.saibNavy)),
-                    ElevatedButton.icon(
-                      onPressed: _showNewAccountDialog,
-                      icon: const Icon(Icons.add, size: 16),
-                      label: const Text('Open Additional Account'),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.saibRed, foregroundColor: Colors.white),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _showNewAccountDialog,
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Open Additional Account'),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.saibRed, foregroundColor: Colors.white),
+                      ),
                     )
                   ],
                 ),
@@ -330,9 +326,9 @@ class _CifDashboardPageState extends State<CifDashboardPage> {
           elevation: 1,
           child: ListTile(
             title: Text('Account Type: $accountType', style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Ref: REQ-$requestRef' + (accNumber != null ? '\nAccount #: $accNumber' : '')),
+            subtitle: Text('Ref: REQ-$requestRef${accNumber != null ? '\nAccount #: $accNumber' : ''}'),
             trailing: Chip(
-              backgroundColor: statusColor.withOpacity(0.1),
+              backgroundColor: statusColor.withValues(alpha: 0.1),
               label: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
             ),
           ),
